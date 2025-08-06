@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMOCHAT - Firebase Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            margin-top: 10px;}
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        .auth-container {
+            display: none;
+        }
+
+        .auth-container.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-google {
+            background: #db4437;
+            color: white;
+        }
+
+        .btn-google:hover {
+            background: #c23321;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(219, 68, 55, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .divider {
+            margin: 20px 0;
+            position: relative;
+            text-align: center;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e1e8ed;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .user-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .user-info p {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            color: #666;
+            font-style: italic;
+        }
+
+        .firebase-config {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .firebase-config h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .firebase-config code {
+            background: #f8f9fa;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🔥 EMOCHAT</div>
+        <div class="subtitle">Firebase Authentication Demo</div>
+
+        <!-- Firebase Configuration Notice -->
+        <div class="firebase-config">
+            <h4>⚠️ Setup Required</h4>
+            <p>To use this demo, update <code>firebase-config.js</code> with your Firebase project credentials.</p>
+        </div>
+
+        <!-- Alert Messages -->
+        <div id="alert" class="alert" style="display: none;"></div>
+        <div id="loading" class="loading">Processing...</div>
+
+        <!-- Login Form -->
+        <div id="loginContainer" class="auth-container active">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" required placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn btn-primary">Sign In</button>
+            </form>
+
+            <div class="divider"><span>or</span></div>
+
+            <button id="googleSignIn" class="btn btn-google">
+                Continue with Google
+            </button>
+
+            <div class="divider"><span>or</span></div>
+
+            <button id="showRegister" class="btn btn-secondary">Create New Account</button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerContainer" class="auth-container">
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" required placeholder="Choose a password (min 6 chars)">
+                </div>
+                <div class="form-group">
+                    <label for="registerConfirmPassword">Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" required placeholder="Confirm your password">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </form>
+
+            <div class="divider"><span>or</span></div>
+
+            <button id="showLogin" class="btn btn-secondary">Back to Sign In</button>
+        </div>
+
+        <!-- User Dashboard -->
+        <div id="dashboardContainer" class="auth-container">
+            <div class="user-info">
+                <h3>Welcome! 👋</h3>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <p><strong>UID:</strong> <span id="userUid"></span></p>
+                <p><strong>Provider:</strong> <span id="userProvider"></span></p>
+                <p><strong>Email Verified:</strong> <span id="emailVerified"></span></p>
+            </div>
+
+            <div id="backendUserInfo" class="user-info" style="display: none;">
+                <h3>Backend User Profile 🛡️</h3>
+                <p><strong>Username:</strong> <span id="backendUsername"></span></p>
+                <p><strong>User ID:</strong> <span id="backendUserId"></span></p>
+                <p><strong>Online:</strong> <span id="backendOnline"></span></p>
+                <p><strong>Last Seen:</strong> <span id="backendLastSeen"></span></p>
+            </div>
+
+            <button id="testBackend" class="btn btn-primary">Test Backend Connection</button>
+            <button id="signOut" class="btn btn-secondary">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword,
+            signInWithPopup,
+            GoogleAuthProvider,
+            signOut,
+            onAuthStateChanged 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Import Firebase config
+        import firebaseConfig from './firebase-config.js';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const googleProvider = new GoogleAuthProvider();
+
+        // Backend API URL
+        const API_BASE = 'http://localhost:5000/api';
+
+        // DOM Elements
+        const loginContainer = document.getElementById('loginContainer');
+        const registerContainer = document.getElementById('registerContainer');
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        const alert = document.getElementById('alert');
+        const loading = document.getElementById('loading');
+
+        // Forms
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+
+        // Buttons
+        const googleSignInBtn = document.getElementById('googleSignIn');
+        const showRegisterBtn = document.getElementById('showRegister');
+        const showLoginBtn = document.getElementById('showLogin');
+        const signOutBtn = document.getElementById('signOut');
+        const testBackendBtn = document.getElementById('testBackend');
+
+        // User info elements
+        const userEmail = document.getElementById('userEmail');
+        const userUid = document.getElementById('userUid');
+        const userProvider = document.getElementById('userProvider');
+        const emailVerified = document.getElementById('emailVerified');
+        const backendUserInfo = document.getElementById('backendUserInfo');
+
+        // Current user token
+        let currentToken = null;
+
+        // Show/Hide functions
+        function showContainer(container) {
+            [loginContainer, registerContainer, dashboardContainer].forEach(c => 
+                c.classList.remove('active')
+            );
+            container.classList.add('active');
+        }
+
+        function showAlert(message, type = 'error') {
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000);
+        }
+
+        function showLoading(show = true) {
+            loading.style.display = show ? 'block' : 'none';
+        }
+
+        // Firebase Auth State Observer
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in
+                console.log('User signed in:', user);
+                
+                // Get ID token
+                try {
+                    currentToken = await user.getIdToken();
+                    await verifyWithBackend(currentToken);
+                    showUserDashboard(user);
+                } catch (error) {
+                    console.error('Error getting token:', error);
+                    showAlert('Error getting authentication token');
+                }
+            } else {
+                // User is signed out
+                console.log('User signed out');
+                currentToken = null;
+                showContainer(loginContainer);
+            }
+        });
+
+        // Verify token with backend
+        async function verifyWithBackend(idToken) {
+            try {
+                const response = await fetch(`${API_BASE}/auth/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ idToken })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('Backend verification successful:', data);
+                    showBackendUserInfo(data.data.user);
+                    showAlert('Successfully connected to backend!', 'success');
+                } else {
+                    console.error('Backend verification failed:', data);
+                    showAlert(`Backend error: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Backend connection error:', error);
+                showAlert('Failed to connect to backend');
+            }
+        }
+
+        // Show user dashboard
+        function showUserDashboard(user) {
+            userEmail.textContent = user.email;
+            userUid.textContent = user.uid;
+            userProvider.textContent = user.providerData[0]?.providerId || 'email';
+            emailVerified.textContent = user.emailVerified ? 'Yes' : 'No';
+            
+            showContainer(dashboardContainer);
+        }
+
+        // Show backend user info
+        function showBackendUserInfo(user) {
+            document.getElementById('backendUsername').textContent = user.username;
+            document.getElementById('backendUserId').textContent = user.id;
+            document.getElementById('backendOnline').textContent = user.isOnline ? 'Yes' : 'No';
+            document.getElementById('backendLastSeen').textContent = new Date(user.lastSeen).toLocaleString();
+            
+            backendUserInfo.style.display = 'block';
+        }
+
+        // Event Listeners
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading(true);
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showAlert('Sign in successful!', 'success');
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert(error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading(true);
+
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match');
+                showLoading(false);
+                return;
+            }
+
+            if (password.length < 6) {
+                showAlert('Password must be at least 6 characters');
+                showLoading(false);
+                return;
+            }
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                showAlert('Account created successfully!', 'success');
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert(error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        googleSignInBtn.addEventListener('click', async () => {
+            showLoading(true);
+
+            try {
+                await signInWithPopup(auth, googleProvider);
+                showAlert('Google sign in successful!', 'success');
+            } catch (error) {
+                console.error('Google sign in error:', error);
+                showAlert(error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        signOutBtn.addEventListener('click', async () => {
+            try {
+                // Logout from backend first
+                if (currentToken) {
+                    await fetch(`${API_BASE}/auth/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${currentToken}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                }
+
+                // Sign out from Firebase
+                await signOut(auth);
+                showAlert('Signed out successfully!', 'success');
+            } catch (error) {
+                console.error('Sign out error:', error);
+                showAlert('Error signing out');
+            }
+        });
+
+        testBackendBtn.addEventListener('click', async () => {
+            if (!currentToken) {
+                showAlert('No authentication token available');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('Backend connection test successful!', 'success');
+                    console.log('Backend user data:', data);
+                } else {
+                    showAlert(`Backend test failed: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Backend test error:', error);
+                showAlert('Backend connection test failed');
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        showRegisterBtn.addEventListener('click', () => {
+            showContainer(registerContainer);
+        });
+
+        showLoginBtn.addEventListener('click', () => {
+            showContainer(loginContainer);
+        });
+
+        // Initialize
+        console.log('🔥 EMOCHAT Firebase Demo initialized');
+    </script>
+</body>
+</html>

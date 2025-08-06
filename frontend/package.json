@@ -1,0 +1,16 @@
+{
+  "name": "emochat-frontend-demo",
+  "version": "1.0.0",
+  "description": "Firebase Authentication Demo for EMOCHAT",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8080 -c-1",
+    "serve": "python -m http.server 8080"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "keywords": ["firebase", "authentication", "demo", "emochat"],
+  "author": "EMOCHAT Team",
+  "license": "MIT"
+}

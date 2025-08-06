@@ -1,0 +1,417 @@
+{
+  "info": {
+    "name": "EMOCHAT API Collection",
+    "description": "Complete test suite for EMOCHAT Backend with Firebase Authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "firebase_token",
+      "value": "YOUR_FIREBASE_ID_TOKEN_HERE",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Verify Firebase Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('user_id', response.data.user.id);",
+                  "    pm.environment.set('firebase_uid', response.data.firebaseData.uid);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"{{firebase_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"updated_user\",\n  \"avatar\": \"https://example.com/avatar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/user/all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "all"]
+            }
+          }
+        },
+        {
+          "name": "Update User Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"en\",\n  \"notifications\": {\n    \"push\": true,\n    \"email\": false,\n    \"emotionAlerts\": true\n  },\n  \"privacy\": {\n    \"shareEmotions\": true,\n    \"profileVisibility\": \"public\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Update Online Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isOnline\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/user/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "user", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Chat Management",
+      "item": [
+        {
+          "name": "Get User Chat Rooms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chat/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Create Chat Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('room_id', response.data.room._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Chat Room\",\n  \"description\": \"A room for testing emotions\",\n  \"isPrivate\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('message_id', response.data.message._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"I'm feeling great today! This is amazing!\",\n  \"roomId\": \"{{room_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Get Room Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chat/rooms/{{room_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "rooms", "{{room_id}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Join Chat Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/chat/rooms/{{room_id}}/join",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat", "rooms", "{{room_id}}", "join"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "😊 Emotion Analysis",
+      "item": [
+        {
+          "name": "Analyze Text Emotion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"I'm feeling incredibly happy and excited about this project!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/emotion/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["api", "emotion", "analyze"]
+            }
+          }
+        },
+        {
+          "name": "Get User Emotion Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/emotion/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "emotion", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Get Room Emotion Trends",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/emotion/room/{{room_id}}/trends",
+              "host": ["{{base_url}}"],
+              "path": ["api", "emotion", "room", "{{room_id}}", "trends"]
+            }
+          }
+        },
+        {
+          "name": "Get Message Emotions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/emotion/message/{{message_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "emotion", "message", "{{message_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
