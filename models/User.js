@@ -93,6 +93,30 @@ const userSchema = new mongoose.Schema({
       }
     }
   },
+  fcmTokens: [{
+    token: {
+      type: String,
+      required: true
+    },
+    deviceType: {
+      type: String,
+      enum: ['web', 'android', 'ios'],
+      default: 'web'
+    },
+    deviceId: {
+      type: String,
+      default: null
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    lastUsed: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  // Legacy field - kept for compatibility
   fcmToken: {
     type: String,
     default: null
@@ -113,6 +137,58 @@ const userSchema = new mongoose.Schema({
 userSchema.methods.updateLastSeen = function() {
   this.lastSeen = new Date();
   return this.save();
+};
+
+// FCM Token Management Methods
+userSchema.methods.addFCMToken = function(token, deviceType = 'web', deviceId = null) {
+  // Remove existing token if it exists
+  this.fcmTokens = this.fcmTokens.filter(t => t.token !== token);
+  
+  // Add new token
+  this.fcmTokens.push({
+    token,
+    deviceType,
+    deviceId,
+    isActive: true,
+    lastUsed: new Date()
+  });
+  
+  // Keep only last 5 tokens per user
+  if (this.fcmTokens.length > 5) {
+    this.fcmTokens = this.fcmTokens.slice(-5);
+  }
+  
+  return this.save();
+};
+
+userSchema.methods.removeFCMToken = function(token) {
+  this.fcmTokens = this.fcmTokens.filter(t => t.token !== token);
+  return this.save();
+};
+
+userSchema.methods.getActiveFCMTokens = function() {
+  return this.fcmTokens
+    .filter(t => t.isActive)
+    .map(t => t.token);
+};
+
+userSchema.methods.updateFCMTokenActivity = function(token) {
+  const tokenObj = this.fcmTokens.find(t => t.token === token);
+  if (tokenObj) {
+    tokenObj.lastUsed = new Date();
+    tokenObj.isActive = true;
+    return this.save();
+  }
+  return Promise.resolve(this);
+};
+
+userSchema.methods.deactivateFCMToken = function(token) {
+  const tokenObj = this.fcmTokens.find(t => t.token === token);
+  if (tokenObj) {
+    tokenObj.isActive = false;
+    return this.save();
+  }
+  return Promise.resolve(this);
 };
 
 userSchema.methods.addEmotionToHistory = function(emotion, confidence) {

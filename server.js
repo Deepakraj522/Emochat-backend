@@ -27,6 +27,7 @@ const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const emotionRoutes = require('./routes/emotion');
 const userRoutes = require('./routes/user');
+const notificationRoutes = require('./routes/notifications');
 
 // Middleware
 app.use(helmet());
@@ -60,6 +61,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/emotion', emotionRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -80,7 +82,8 @@ app.get('/', (req, res) => {
       auth: '/api/auth',
       chat: '/api/chat',
       emotion: '/api/emotion',
-      user: '/api/user'
+      user: '/api/user',
+      notifications: '/api/notifications'
     }
   });
 });

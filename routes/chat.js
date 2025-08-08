@@ -3,7 +3,10 @@ const { body, validationResult, query } = require('express-validator');
 const Message = require('../models/Message');
 const ChatRoom = require('../models/ChatRoom');
 const User = require('../models/User');
+const Emotion = require('../models/Emotion');
 const { auth, optionalAuth } = require('../middleware/auth');
+const { analyzeEmotion } = require('../utils/emotionAPI');
+const { sendNotificationToMultiple } = require('../config/firebase');
 
 const router = express.Router();
 
@@ -255,6 +258,94 @@ router.post('/rooms/:roomId/messages', auth, [
       receiverId = receiver ? receiver.user._id : null;
     }
 
+    // Analyze emotion for text messages
+    let emotionData = null;
+    if (messageType === 'text' && content && content.trim().length > 0) {
+      try {
+        emotionData = await analyzeEmotion(content);
+        
+        // Save emotion data to Emotion collection for analytics
+        const emotionRecord = new Emotion({
+          userId: req.userId,
+          text: content,
+          sentimentScore: emotionData.sentiment.score,
+          magnitude: emotionData.sentiment.magnitude,
+          emotion: emotionData.emotion,
+          confidence: emotionData.confidence,
+          processedBy: emotionData.processedBy || 'google-cloud-nlp',
+          processingTime: emotionData.processingTime || 0,
+          messageId: null, // Will be updated after message creation
+          roomId: roomId // Add roomId to the emotion record
+        });
+        
+        const savedEmotion = await emotionRecord.save();
+        
+        // Check for negative sentiment and trigger support notification
+        if (emotionData.sentiment.score <= -0.6) {
+          try {
+            const user = await User.findById(req.userId);
+            if (user) {
+              const fcmTokens = user.getActiveFCMTokens();
+              
+              if (fcmTokens.length > 0) {
+                const supportTitle = "We're here for you";
+                const supportBody = `Hi ${user.username}, we're here for you. You're not alone 💙`;
+                
+                await sendNotificationToMultiple(
+                  fcmTokens,
+                  supportTitle,
+                  supportBody,
+                  {
+                    type: 'emotional_support',
+                    sentimentScore: emotionData.sentiment.score.toString(),
+                    emotion: emotionData.emotion,
+                    roomId: roomId.toString(),
+                    timestamp: new Date().toISOString()
+                  },
+                  {
+                    notification: {
+                      tag: 'emotional_support',
+                      requireInteraction: true
+                    },
+                    android: {
+                      notification: {
+                        icon: 'ic_heart',
+                        color: '#4A90E2',
+                        sound: 'gentle_chime',
+                        priority: 'high'
+                      }
+                    },
+                    apns: {
+                      payload: {
+                        aps: {
+                          sound: 'gentle_chime.wav',
+                          badge: 1,
+                          category: 'EMOTIONAL_SUPPORT'
+                        }
+                      }
+                    }
+                  }
+                );
+                
+                // Update emotion record to mark notification as sent
+                savedEmotion.fcmNotificationSent = true;
+                await savedEmotion.save();
+                
+                console.log(`🔔 Mental health support notification sent to user ${req.userId} (sentiment: ${emotionData.sentiment.score})`);
+              }
+            }
+          } catch (supportError) {
+            console.error('Mental health support notification error:', supportError.message);
+            // Don't fail message sending if support notification fails
+          }
+        }
+        
+      } catch (error) {
+        console.error('Emotion analysis failed:', error.message);
+        // Continue without emotion data if analysis fails
+      }
+    }
+
     // Create new message
     const message = new Message({
       sender: req.userId,
@@ -263,16 +354,144 @@ router.post('/rooms/:roomId/messages', auth, [
       messageType,
       chatRoom: roomId,
       replyTo,
-      attachments
+      attachments,
+      emotion: emotionData
     });
 
     await message.save();
     await message.populate(['sender', 'receiver', 'replyTo']);
 
+    // Update emotion record with message ID if emotion was analyzed
+    if (emotionData) {
+      try {
+        await Emotion.findOneAndUpdate(
+          { 
+            userId: req.userId, 
+            text: content,
+            messageId: null 
+          }, 
+          { messageId: message._id },
+          { sort: { createdAt: -1 } } // Get the most recent one
+        );
+      } catch (error) {
+        console.error('Failed to link emotion record to message:', error.message);
+      }
+    }
+
+    // Update user's emotion history if emotion was detected
+    if (emotionData && emotionData.confidence > 0.5) {
+      try {
+        const user = await User.findById(req.userId);
+        if (user && user.addEmotionToHistory) {
+          await user.addEmotionToHistory(emotionData.emotion, emotionData.confidence);
+        }
+      } catch (error) {
+        console.error('Failed to update user emotion history:', error.message);
+      }
+    }
+
     // Update chat room last activity and last message
     chatRoom.lastMessage = message._id;
     chatRoom.lastActivity = new Date();
     await chatRoom.save();
+
+    // Send push notifications to other participants
+    try {
+      const otherParticipants = chatRoom.participants.filter(
+        p => p.user._id.toString() !== req.userId
+      );
+
+      if (otherParticipants.length > 0) {
+        const sender = await User.findById(req.userId);
+        const senderName = sender ? sender.username : 'Someone';
+        
+        // Get all FCM tokens from other participants
+        const participantIds = otherParticipants.map(p => p.user._id);
+        const participants = await User.find({ 
+          _id: { $in: participantIds },
+          'preferences.notifications.push': true // Only users who enabled push notifications
+        });
+
+        const allTokens = [];
+        participants.forEach(participant => {
+          const activeTokens = participant.getActiveFCMTokens();
+          allTokens.push(...activeTokens);
+        });
+
+        if (allTokens.length > 0) {
+          const notificationTitle = chatRoom.type === 'private' 
+            ? `${senderName}` 
+            : `${senderName} in ${chatRoom.name}`;
+          
+          let notificationBody = content;
+          
+          // Add emotion indicator if emotion was detected
+          if (emotionData && emotionData.confidence > 0.6) {
+            const emotionEmojis = {
+              joy: '😊',
+              sadness: '😢', 
+              anger: '😠',
+              fear: '😨',
+              surprise: '😲',
+              disgust: '🤢'
+            };
+            const emoji = emotionEmojis[emotionData.emotion] || '';
+            if (emoji) {
+              notificationBody = `${emoji} ${content}`;
+            }
+          }
+
+          // Truncate long messages
+          if (notificationBody.length > 100) {
+            notificationBody = notificationBody.substring(0, 97) + '...';
+          }
+
+          const notificationData = {
+            type: 'new_message',
+            messageId: message._id.toString(),
+            chatRoomId: chatRoom._id.toString(),
+            senderId: req.userId,
+            senderName: senderName,
+            messageType: messageType,
+            timestamp: new Date().toISOString()
+          };
+
+          // Add emotion data if available
+          if (emotionData) {
+            notificationData.emotion = emotionData.emotion;
+            notificationData.sentiment = emotionData.sentiment.score;
+          }
+
+          await sendNotificationToMultiple(
+            allTokens,
+            notificationTitle,
+            notificationBody,
+            notificationData,
+            {
+              android: {
+                notification: {
+                  channelId: 'emochat_messages',
+                  priority: 'high'
+                }
+              },
+              apns: {
+                payload: {
+                  aps: {
+                    category: 'message',
+                    'thread-id': chatRoom._id.toString()
+                  }
+                }
+              }
+            }
+          );
+
+          console.log(`📱 Push notifications sent to ${allTokens.length} devices for new message`);
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send push notifications:', notificationError.message);
+      // Don't fail the message sending if notifications fail
+    }
 
     res.status(201).json({
       success: true,

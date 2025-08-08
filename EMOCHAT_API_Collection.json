@@ -371,9 +371,21 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/emotion/profile",
+              "raw": "{{base_url}}/api/emotion/profile?page=1&limit=10",
               "host": ["{{base_url}}"],
-              "path": ["api", "emotion", "profile"]
+              "path": ["api", "emotion", "profile"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of emotions per page (default: 10)"
+                }
+              ]
             }
           }
         },
@@ -388,9 +400,26 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/emotion/room/{{room_id}}/trends",
+              "raw": "{{base_url}}/api/emotion/trends/{{room_id}}?days=7&page=1&limit=20",
               "host": ["{{base_url}}"],
-              "path": ["api", "emotion", "room", "{{room_id}}", "trends"]
+              "path": ["api", "emotion", "trends", "{{room_id}}"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "7",
+                  "description": "Number of days to analyze (default: 7)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of emotions per page (default: 20)"
+                }
+              ]
             }
           }
         },
@@ -408,6 +437,64 @@
               "raw": "{{base_url}}/api/emotion/message/{{message_id}}",
               "host": ["{{base_url}}"],
               "path": ["api", "emotion", "message", "{{message_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Emotion History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/emotion/history?days=30&page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "emotion", "history"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "Number of days to analyze (default: 7, max: 365)"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default: 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of emotions per page (default: 20)"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Emotion Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{firebase_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/emotion/stats?days=30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "emotion", "stats"],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "30",
+                  "description": "Number of days to analyze (default: 30)"
+                }
+              ]
             }
           }
         }

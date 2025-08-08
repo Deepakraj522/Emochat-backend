@@ -7,7 +7,7 @@ const auth = async (req, res, next) => {
     const authHeader = req.header('Authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      return res.status(401).json({ 
         success: false,
         message: 'Access denied. No valid Firebase token provided.'
       });
